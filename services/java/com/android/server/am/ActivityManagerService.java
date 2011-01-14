@@ -2612,6 +2612,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                     if (localLOGV) Slog.v(
                         TAG, "Removing this entry!  frozen=" + r.haveState
                         + " finishing=" + r.finishing);
+                    r.makeFinishing();
                     mMainStack.mHistory.remove(i);
 
                     r.inHistory = false;
@@ -6607,7 +6608,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                     if (r.state == ActivityState.RESUMED
                             || r.state == ActivityState.PAUSING
                             || r.state == ActivityState.PAUSED) {
-                        if (!r.isHomeActivity) {
+                        if (!r.isHomeActivity || mHomeProcess != r.app) {
                             Slog.w(TAG, "  Force finishing activity "
                                     + r.intent.getComponent().flattenToShortString());
                             r.stack.finishActivityLocked(r, index,
@@ -9574,7 +9575,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                 // r.record is null if findServiceLocked() failed the caller permission check
                 if (r.record == null) {
                     throw new SecurityException(
-                            "Permission Denial: Accessing service "
+                            "Permission Denial: Accessing service " + r.record.name
                             + " from pid=" + Binder.getCallingPid()
                             + ", uid=" + Binder.getCallingUid()
                             + " requires " + r.permission);
