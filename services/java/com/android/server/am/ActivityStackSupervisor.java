@@ -1134,6 +1134,19 @@ public final class ActivityStackSupervisor {
                 resultRecord.removeResultsLocked(
                     sourceRecord, resultWho, requestCode);
             }
+            if (sourceRecord.launchedFromUid == callingUid) {
+                // The new activity is being launched from the same uid as the previous
+                // activity in the flow, and asking to forward its result back to the
+                // previous.  In this case the activity is serving as a trampoline between
+                // the two, so we also want to update its launchedFromPackage to be the
+                // same as the previous activity.  Note that this is safe, since we know
+                // these two packages come from the same uid; the caller could just as
+                // well have supplied that same package name itself.  This specifially
+                // deals with the case of an intent picker/chooser being launched in the app
+                // flow to redirect to an activity picked by the user, where we want the final
+                // activity to consider it to have been launched by the previous app activity.
+                callingPackage = sourceRecord.launchedFromPackage;
+            }
         }
 
         if (err == ActivityManager.START_SUCCESS && intent.getComponent() == null) {
@@ -1425,7 +1438,6 @@ public final class ActivityStackSupervisor {
             r.resultTo = null;
         }
 
-        boolean switchStackFromBg = false;
         boolean addingToTask = false;
         boolean movedHome = false;
         TaskRecord reuseTask = null;
@@ -1487,11 +1499,6 @@ public final class ActivityStackSupervisor {
                             }
                             options = null;
                         }
-                    } else {
-                        switchStackFromBg = lastStack != targetStack;
-                        if (DEBUG_TASKS) Slog.d(TAG, "Caller " + sourceRecord
-                                    + " is not top task, it may not move " + r
-                                    + " to front, switchStack=" + switchStackFromBg);
                     }
                     // If the caller has requested that the target task be
                     // reset, then do so.
@@ -1599,10 +1606,6 @@ public final class ActivityStackSupervisor {
                         // don't use that intent!)  And for paranoia, make
                         // sure we have correctly resumed the top activity.
                         if (doResume) {
-                            if (switchStackFromBg) {
-                                moveHomeStack(lastStack.isHomeStack());
-                                targetStack = lastStack;
-                            }
                             targetStack.resumeTopActivityLocked(null, options);
                         } else {
                             ActivityOptions.abort(options);
@@ -1706,6 +1709,7 @@ public final class ActivityStackSupervisor {
             TaskRecord sourceTask = sourceRecord.task;
             targetStack = sourceTask.stack;
             moveHomeStack(targetStack.isHomeStack());
+            mWindowManager.moveTaskToTop(sourceTask.taskId);
             if (!addingToTask &&
                     (launchFlags&Intent.FLAG_ACTIVITY_CLEAR_TOP) != 0) {
                 // In this case, we are adding the activity to an existing
@@ -1764,6 +1768,7 @@ public final class ActivityStackSupervisor {
             r.setTask(prev != null ? prev.task
                     : targetStack.createTaskRecord(getNextTaskId(), r.info, intent, true),
                     null, true);
+            mWindowManager.moveTaskToTop(r.task.taskId);
             if (DEBUG_TASKS) Slog.v(TAG, "Starting new activity " + r
                     + " in new guessed " + r.task);
         }
