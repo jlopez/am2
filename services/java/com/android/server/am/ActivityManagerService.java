@@ -6427,6 +6427,8 @@ public final class ActivityManagerService extends ActivityManagerNative
         app.debugging = false;
         app.cached = false;
         app.killedByAm = false;
+        app.killed = false;
+
 
         // We carefully use the same state that PackageManager uses for
         // filtering, since we use this flag to decide if we need to install
@@ -6703,7 +6705,7 @@ public final class ActivityManagerService extends ActivityManagerNative
 
         ArraySet<String> completedIsas = new ArraySet<String>();
         for (String abi : Build.SUPPORTED_ABIS) {
-            Process.zygoteProcess.establishZygoteConnectionForAbi(abi);
+            Process.establishZygoteConnectionForAbi(abi);
             final String instructionSet = VMRuntime.getInstructionSet(abi);
             if (!completedIsas.contains(instructionSet)) {
                 try {
