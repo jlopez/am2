@@ -1575,8 +1575,6 @@ public final class ActivityManagerService extends ActivityManagerNative
     // being called for multiwindow assist in a single session.
     private int mViSessionId = 1000;
 
-    final boolean mPermissionReviewRequired;
-
     final class KillHandler extends Handler {
         static final int KILL_PROCESS_GROUP_MSG = 4000;
 
@@ -2623,9 +2621,6 @@ public final class ActivityManagerService extends ActivityManagerNative
         mSystemThread = ActivityThread.currentActivityThread();
 
         Slog.i(TAG, "Memory class: " + ActivityManager.staticGetMemoryClass());
-
-        mPermissionReviewRequired = mContext.getResources().getBoolean(
-                com.android.internal.R.bool.config_permissionReviewRequired);
 
         mHandlerThread = new ServiceThread(TAG,
                 android.os.Process.THREAD_PRIORITY_FOREGROUND, false /*allowIo*/);
@@ -3809,12 +3804,12 @@ public final class ActivityManagerService extends ActivityManagerNative
                 startResult = Process.startWebView(entryPoint,
                         app.processName, uid, uid, gids, debugFlags, mountExternal,
                         app.info.targetSdkVersion, app.info.seinfo, requiredAbi, instructionSet,
-                        app.info.dataDir, entryPointArgs);
+                        app.info.dataDir, null, entryPointArgs);
             } else {
                 startResult = Process.start(entryPoint,
                         app.processName, uid, uid, gids, debugFlags, mountExternal,
                         app.info.targetSdkVersion, app.info.seinfo, requiredAbi, instructionSet,
-                        app.info.dataDir, entryPointArgs);
+                        app.info.dataDir, null, entryPointArgs);
             }
             checkTime(startTime, "startProcess: returned from zygote!");
             Trace.traceEnd(Trace.TRACE_TAG_ACTIVITY_MANAGER);
@@ -10829,7 +10824,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                     // If permissions need a review before any of the app components can run,
                     // we return no provider and launch a review activity if the calling app
                     // is in the foreground.
-                    if (mPermissionReviewRequired || Build.PERMISSIONS_REVIEW_REQUIRED) {
+                    if (Build.PERMISSIONS_REVIEW_REQUIRED) {
                         if (!requestTargetProviderPermissionsReviewIfNeededLocked(cpi, r, userId)) {
                             return null;
                         }
